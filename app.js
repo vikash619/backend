@@ -54,8 +54,8 @@ app.use(function (req, res, next) {
 app.use('/users', users);
 
 //path error
-app.get("/", (req,res)=>{
-    res.send("invalid ")
+app.get("*", (req,res)=>{
+  res.sendFile(process.cwd() + "/public/index.html");
 })
 
 
