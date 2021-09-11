@@ -67,7 +67,7 @@ router.post("/authenticate", (req,res,next)=>{
                     }
                 })
             }else{
-               return res.json({success:false, message:"wrong credentials"});
+               return res.status(422).json({success:false, message:"wrong credentials"});
             }
         })
         
@@ -84,18 +84,21 @@ router.post("/profile/update/:id", (req,res)=>{
     User.findByIdAndUpdate(_id, req.body,{ useFindAndModify: false })
         .then((data)=>{
             if(!data){
-                res.json({success:false, message:"cannot update"})
+                res.status(422).json({success:false, message:"cannot update"})
             }else{
-                res.json({success:true, message:"user updated successfully"})
+                res.status(200).json({success:true, message:"user updated successfully"})
             }
         })
         .catch((error)=>{
-            res.json({success:false, message:"not update"});
+            res.status(422).json({success:false, message:"not update"});
         })
 })
 
+
+
 router.post("/resume", (req,res)=>{
-    
+   console.log(req.body);
+   res.status(200).json({success:true, message:"resume done"});
 })
 
 module.exports = router;
