@@ -171,6 +171,9 @@ router.post("/resume", async (req, res) => {
     }
 });
 
+
+// you can use this seperate UPDATE route also
+
 // router.post("/resume/update", (req, res) => {
 //     if (!req.cookies) {
 //         res.status(422).json({ success: false, message: "please send cookie" });
