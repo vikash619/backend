@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const passport = require("passport");
 const passportjwt = require("passport-jwt");
+const cookieParser = require("cookie-parser");
 const config = require("./config/database")
 const path = require("path");
 
@@ -33,6 +34,7 @@ const PORT = process.env.PORT || 3000
 //set static folder
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
+app.use(cookieParser());
 app.set(express.urlencoded({extended:false}));
 
 app.use(passport.initialize());

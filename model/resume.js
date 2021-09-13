@@ -1,11 +1,11 @@
 const mongoose = require("mongoose");
 
 const resumeSchema = mongoose.Schema({}, {strict:false});
-var Resume = mongoose.model('resume', resumeSchema);
+const Resume = mongoose.model('resume', resumeSchema);
 
 module.exports = Resume;
 
 //save resume
-module.exports.addResume = function (newUserResume, callback){
+module.exports.adduserResume = function (newUserResume, callback){
     newUserResume.save(callback);
 }
