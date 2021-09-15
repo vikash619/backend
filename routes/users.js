@@ -171,6 +171,23 @@ router.post("/resume", async (req, res) => {
     }
 });
 
+// router.get("/resumetemplate", (req,res)=>{
+//     if(!req.cookies){
+//         res.status(422).json({success:false, message:"cookie not available please send it"});
+//     }
+
+//     const userCookie = req.cookies.jwt;
+//     const decoded = jwt.decode(userCookie);
+//     const userID = decoded._id;
+
+//     Resume.findById({userID:userID})
+//     .then((data)=>{
+//         res.status(201).json({success:true, message:"resume data found successfully"});
+//     })
+//     .catch((error)=>{
+//         res.status(422).json({success:false, message:"something went wrong"});
+//     })
+// })
 
 // you can use this seperate UPDATE route also
 
