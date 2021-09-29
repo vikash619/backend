@@ -120,7 +120,7 @@ router.post("/resume", async (req, res) => {
         res.status(422).json({ success: false, message: "please send cookie" });
 
     } else {
-
+        console.log(req.body);
         const resumeData = req.body;
         const userCookie = req.cookies.jwt;
         const decoded = jwt.decode(userCookie);
@@ -130,14 +130,17 @@ router.post("/resume", async (req, res) => {
         const saveResumeData = new Resume({
             userID: resumeData.userID,
             fullName: resumeData.fullName,
+            designation: resumeData.designation,
             contact: resumeData.contact,
             email: resumeData.email,
             address: resumeData.address,
+            website: resumeData.website,
             github: resumeData.github,
             linkedin: resumeData.linkedin,
-            objective: resumeData.objective,
+            stackoverflow: resumeData.stackoverflow,
             academicQli: resumeData.academicQli,
-            workExp: resumeData.workExp
+            workExp: resumeData.workExp,
+            objective: resumeData.objective,
         });
         
         Resume.findOne({userID:userID}, async (err, data)=>{
