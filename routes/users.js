@@ -138,6 +138,7 @@ router.post("/resume", async (req, res) => {
             github: resumeData.github,
             linkedin: resumeData.linkedin,
             stackoverflow: resumeData.stackoverflow,
+            skills: resumeData.skills,
             academicQli: resumeData.academicQli,
             workExp: resumeData.workExp,
             objective: resumeData.objective,
