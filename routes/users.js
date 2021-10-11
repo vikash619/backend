@@ -96,16 +96,21 @@ router.post("/profile/update/:id", (req, res) => {
 })
 
 router.get("/resume", (req, res)=>{
+    // console.log()
     if(!req.cookies){
         res.json({success:false, message:"please give cookie"});
     }
 
     const userCookie = req.cookies.jwt;
     const decoded = jwt.decode(userCookie);
+    console.log(decoded);
     const userID = decoded._id;
+    console.log(userID);
 
     Resume.findOne({userID:userID})
     .then((data)=>{
+        console.log('resume fetch');
+        console.log(data);
         res.status(201).json({success:true, message:"resume data founded", resumeData:data});
     })
     .catch((err)=>{
