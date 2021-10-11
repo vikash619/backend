@@ -48,7 +48,7 @@ router.post("/authenticate", (req, res, next) => {
             if (error) throw error;
             if (isMatch) {
                 const token = jwt.sign(user.toJSON(), config.secret, {
-                    expiresIn: 180                                                   //3 mint
+                    expiresIn: 60000
                 })
 
                 res.cookie("jwt", token, {
