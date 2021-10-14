@@ -1,3 +1,4 @@
+require('dotenv').config()
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -8,7 +9,8 @@ const config = require("./config/database")
 const path = require("path");
 
 // connecting database
-mongoose.connect(config.database)               //useNewUrlParser, useUnifiedTopology, useFindAndModify, and useCreateIndex are no longer supported options
+
+mongoose.connect(process.env.DB)               //useNewUrlParser, useUnifiedTopology, useFindAndModify, and useCreateIndex are no longer supported options
 .then(()=>{
     console.log(`connection successful at ${config.database}`)
 })

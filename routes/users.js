@@ -1,22 +1,155 @@
+
 const express = require("express");
 const router = express.Router();
 const passport = require("passport");
 const jwt = require("jsonwebtoken");
-const cookieParser = require("cookie-parser");
-const bcryptjs = require("bcryptjs");
 const User = require("../model/user");
 const Resume = require("../model/resume")
+const Verification = require("../model/verification");
 const config = require("../config/database");
 
+const accountSid = 'ACa85ceef5ab901ff11ba9641d4d3e7a55';
+const authToken = '01baa2454af141018ea2cc9d94962591';
+const client = require('twilio')(accountSid, authToken);
+
+function generateOTP() {
+    var digits = '0123456789';
+    let OTP = '';
+    for (let i = 0; i < 4; i++) {
+        OTP += digits[Math.floor(Math.random() * 10)];
+    }
+    return OTP;
+}
+
+router.post("/generateotp", (req, res) => {
+    if (!req.cookies) {
+
+        res.status(422).json({ success: false, message: "please send cookie" });
+
+    } else {
+        const veriData = req.body;
+        const userCookieveri = req.cookies.jwt;
+        const decodedveri = jwt.decode(userCookieveri);
+        veriData["verificationID"] = decodedveri._id;
+        const verificationID = decodedveri._id;
+
+        var randomNumber = generateOTP();
+        client.messages
+            .create({
+                body: randomNumber,
+                messagingServiceSid: 'MG14b35c7322816944af6ae03483126f7d',
+                to: '+917895961759'
+            })
+            .then(message => {
+                console.log('mesage sent otp: ' + randomNumber)
+            })
+            .catch((e) => {
+                console.log('OTP error')
+                console.log(e)
+            })
+
+        veriData["userVerificationOTP"] = randomNumber;
+
+        const saveUserVerificationData = new Verification({
+            verificationID: veriData.verificationID,            //
+            userVerificationOTP: randomNumber
+        });
+
+        Verification.findOne({ verificationID: verificationID }, async (err, data) => {
+            if (err) throw err;
+
+            if (data) {
+                Verification.findOneAndUpdate({ verificationID: verificationID }, veriData, (err, olddata) => {
+                    if (olddata) {
+                        // console.log("my old data" + olddata);
+                        res.status(201).json({ success: true, message: "user verificaton udpated" })
+                    } else {
+                        // console.log(err)
+                        res.status(422).json({ success: false, message: "user verification failed" })
+                    }
+                })
+            } else {
+                const saveduserVerificationData = await saveUserVerificationData.save();
+                res.status(201).json({ succ: true, message: "verification data saved successfully" });
+            }
+        })
+    }
+})
+
+router.post("/verifyotp", (req,res)=>{
+    if (!req.cookies) {
+
+        res.status(422).json({ success: false, message: "please send cookie" });
+
+    }else{
+        const veriotp = req.body;
+        console.log("veriotp "+veriotp.otp_number);
+
+        const optNumber = veriotp.otp_number;
+        console.log(optNumber);
+        
+        const userCookie = req.cookies.jwt;
+        const decoded = jwt.decode(userCookie);
+        const userID = decoded._id;
+      
+   
+        Verification.findOne({verificationID : userID}, (err, data)=>{
+            if(data){
+                if( data.userVerificationOTP == otpNumber){
+                    User.findOneAndUpdate(userID, {$set : {"verified" : true}}, {useFindandModify : false})
+                    .then((data)=>{
+                        console.log("modified data "+data);
+                        res.status(201).json({success: true, message:"user verified"});
+                    })
+                    .catch((err)=>{
+                        console.log(err);
+                    })
+                }
+               
+            }else{
+                res.status(422).json({success:false, message:"incorrect otp"});
+            }
+        })
+    }
+})
+
+// router.post("/makeVerifiedtrue", (req,res)=>{
+//     if (!req.cookies) {
+//         console.log("motherfucker");
+//         res.status(422).json({ success: false, message: "please send cookie" });
+
+//     }else{
+//         console.log(req.body);
+
+//         const userCookie = req.cookies("jwt");
+//         const decoded = jwt.decode(userCookie);
+//         const userID = decoded._id;
+//         console.log(userID);
+        
+//         User.findByIdAndUpdate(userID, {$set : {"verified" : true}}, { useFindAndModify: false })
+//         .then((data) => {
+//             if (!data) {
+//                 res.status(422).json({ success: false, message: "cannot modify verified property" })
+//             } else {
+//                 res.status(200).json({ success: true, message: "verified successfully modified "})
+//             }
+//         })
+//         .catch((error) => {
+//             res.status(422).json({ success: false, message: "not modified" });
+//         })
+//     }
+// })
 
 router.post("/register", async (req, res, next) => {
+
     // console.log(req.body);
     const newUser = new User({
         fullName: req.body.fullName,
         userName: req.body.userName,
         email: req.body.email,
         password: req.body.password,
-        confirmpassword: req.body.confirmpassword
+        confirmpassword: req.body.confirmpassword,
+        verified: req.body.verified
     });
 
     // alternative of above method : just two line of code
@@ -73,7 +206,9 @@ router.post("/authenticate", (req, res, next) => {
         })
 
     })
+
 })
+
 
 router.get("/profile", passport.authenticate('jwt', { session: false }), (req, res, next) => {
     res.json({ user: req.user });
@@ -95,10 +230,10 @@ router.post("/profile/update/:id", (req, res) => {
         })
 })
 
-router.get("/resume", (req, res)=>{
-    // console.log()
-    if(!req.cookies){
-        res.json({success:false, message:"please give cookie"});
+router.get("/resume", (req, res) => {
+
+    if (!req.cookies) {
+        res.json({ success: false, message: "please give cookie" });
     }
 
     const userCookie = req.cookies.jwt;
@@ -107,15 +242,15 @@ router.get("/resume", (req, res)=>{
     const userID = decoded._id;
     console.log(userID);
 
-    Resume.findOne({userID:userID})
-    .then((data)=>{
-        console.log('resume fetch');
-        console.log(data);
-        res.status(201).json({success:true, message:"resume data founded", resumeData:data});
-    })
-    .catch((err)=>{
-        res.status(422).json({success:false, message:"Couldn't found resume data"})
-    });
+    Resume.findOne({ userID: userID })
+        .then((data) => {
+            console.log('resume fetch');
+            console.log(data);
+            res.status(201).json({ success: true, message: "resume data founded", resumeData: data });
+        })
+        .catch((err) => {
+            res.status(422).json({ success: false, message: "Couldn't found resume data" })
+        });
 })
 
 router.post("/resume", async (req, res) => {
@@ -125,7 +260,6 @@ router.post("/resume", async (req, res) => {
         res.status(422).json({ success: false, message: "please send cookie" });
 
     } else {
-        console.log(req.body);
         const resumeData = req.body;
         const userCookie = req.cookies.jwt;
         const decoded = jwt.decode(userCookie);
@@ -148,27 +282,27 @@ router.post("/resume", async (req, res) => {
             workExp: resumeData.workExp,
             objective: resumeData.objective,
         });
-        
-        Resume.findOne({userID:userID}, async (err, data)=>{
 
-            if(err) throw err;
+        Resume.findOne({ userID: userID }, async (err, data) => {
 
-            if(data){
-                Resume.findOneAndUpdate({userID:userID}, resumeData, (err,olddata)=>{
-                    if(olddata){
+            if (err) throw err;
+
+            if (data) {
+                Resume.findOneAndUpdate({ userID: userID }, resumeData, (err, olddata) => {
+                    if (olddata) {
                         console.log(olddata);
-                        res.status(201).json({success:true, message:"Resume data updated successfully"});
-                    }else{
+                        res.status(201).json({ success: true, message: "Resume data updated successfully" });
+                    } else {
                         console.log(err);
-                        res.status(422).json({success:false, message:"Resume data not updated"});
+                        res.status(422).json({ success: false, message: "Resume data not updated" });
                     }
                 })
-            }else{
+            } else {
                 const savedResume = await saveResumeData.save();
-                res.status(201).json({success:true, message:"Resume data saved successfully"});
+                res.status(201).json({ success: true, message: "Resume data saved successfully" });
             }
         })
-        
+
         //You can use this below function also
         // Resume.addResume(resumeData, (error, user)=>{
         //     if(error){
