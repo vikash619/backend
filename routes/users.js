@@ -7,6 +7,7 @@ const User = require("../model/user");
 const Resume = require("../model/resume")
 const Verification = require("../model/verification");
 const config = require("../config/database");
+const bcryptjs = require("bcryptjs");
 
 const accountSid = 'ACa85ceef5ab901ff11ba9641d4d3e7a55';
 const authToken = '01baa2454af141018ea2cc9d94962591';
@@ -76,38 +77,38 @@ router.post("/generateotp", (req, res) => {
     }
 })
 
-router.post("/verifyotp", (req,res)=>{
+router.post("/verifyotp", (req, res) => {
     if (!req.cookies) {
 
         res.status(422).json({ success: false, message: "please send cookie" });
 
-    }else{
+    } else {
         const veriotp = req.body;
-        console.log("veriotp "+veriotp.otp_number);
+        console.log("veriotp " + veriotp.otp_number);
 
         const optNumber = veriotp.otp_number;
         console.log(optNumber);
-        
+
         const userCookie = req.cookies.jwt;
         const decoded = jwt.decode(userCookie);
         const userID = decoded._id;
-      
-   
-        Verification.findOne({verificationID : userID}, (err, data)=>{
-            if(data){
-                if( data.userVerificationOTP == otpNumber){
-                    User.findOneAndUpdate(userID, {$set : {"verified" : true}}, {useFindandModify : false})
-                    .then((data)=>{
-                        console.log("modified data "+data);
-                        res.status(201).json({success: true, message:"user verified"});
-                    })
-                    .catch((err)=>{
-                        console.log(err);
-                    })
+
+
+        Verification.findOne({ verificationID: userID }, (err, data) => {
+            if (data) {
+                if (data.userVerificationOTP == otpNumber) {
+                    User.findOneAndUpdate(userID, { $set: { "verified": true } }, { useFindandModify: false })
+                        .then((data) => {
+                            console.log("modified data " + data);
+                            res.status(201).json({ success: true, message: "user verified" });
+                        })
+                        .catch((err) => {
+                            console.log(err);
+                        })
                 }
-               
-            }else{
-                res.status(422).json({success:false, message:"incorrect otp"});
+
+            } else {
+                res.status(422).json({ success: false, message: "incorrect otp" });
             }
         })
     }
@@ -125,7 +126,7 @@ router.post("/verifyotp", (req,res)=>{
 //         const decoded = jwt.decode(userCookie);
 //         const userID = decoded._id;
 //         console.log(userID);
-        
+
 //         User.findByIdAndUpdate(userID, {$set : {"verified" : true}}, { useFindAndModify: false })
 //         .then((data) => {
 //             if (!data) {
@@ -140,6 +141,9 @@ router.post("/verifyotp", (req,res)=>{
 //     }
 // })
 
+
+
+//Register function
 router.post("/register", async (req, res, next) => {
 
     // console.log(req.body);
@@ -167,23 +171,30 @@ router.post("/register", async (req, res, next) => {
     // console.log("added user successfully "+addedUser);
 });
 
+
+//login function
+
 router.post("/authenticate", (req, res, next) => {
+    console.log("recieved data : " + req.body.userName + " " + req.body.password);
+
     userName = req.body.userName;
     password = req.body.password;
 
     User.findByUsername(userName, (error, user) => {
         if (error) throw error;
         if (!user) {
+            console.log("user not found")
             return res.status(401).json({ success: false, message: "User not found" });
         }
-
+       
         User.comparepassword(password, user.password, (error, isMatch) => {
             if (error) throw error;
             if (isMatch) {
+                console.log("is match : "+isMatch);
+
                 const token = jwt.sign(user.toJSON(), config.secret, {
                     expiresIn: 60000
                 })
-
                 res.cookie("jwt", token, {
                     maxAge: 24 * 60 * 60 * 1000,
                     httpOnly: false,
@@ -204,11 +215,16 @@ router.post("/authenticate", (req, res, next) => {
                 return res.status(422).json({ success: false, message: "wrong credentials" });
             }
         })
-
     })
-
 })
 
+
+//logout function
+
+router.post('/logout', (req,res)=>{
+    res.clearCookie('jwt');
+    res.status(201).json({success: true, message:"cleared cookie successfully"});
+})
 
 router.get("/profile", passport.authenticate('jwt', { session: false }), (req, res, next) => {
     res.json({ user: req.user });
@@ -216,18 +232,34 @@ router.get("/profile", passport.authenticate('jwt', { session: false }), (req, r
 
 router.post("/profile/update/:id", (req, res) => {
     const _id = req.params.id;
+    console.log("received data " + req.body.fullName+ " "+ req.body.userName+ " " + req.body.email+ " " + req.body.password+ " " + req.body.confirmpassword);
 
-    User.findByIdAndUpdate(_id, req.body, { useFindAndModify: false })
-        .then((data) => {
-            if (!data) {
-                res.status(422).json({ success: false, message: "cannot update" })
-            } else {
-                res.status(200).json({ success: true, message: "user updated successfully" })
-            }
+    User.findById(_id, (error, data) => {
+
+        let saltRound = 10;
+        let password = req.body.password;
+        bcryptjs.genSalt(saltRound, (err, salt) => {
+            bcryptjs.hash(password, salt, (err, hash) => {
+                req.body.password = hash;
+                req.body.confirmpassword = 0;
+                console.log("hashed password "+ hash + " "+req.body.password )
+
+                User.findByIdAndUpdate(_id, req.body, { useFindAndModify: false })
+                    .then((olddata) => {
+                        if (!data) {
+                            res.status(422).json({ success: false, message: "cannot update" })
+                        } else {
+
+                            console.log("updated data" + olddata);
+                            res.status(200).json({ success: true, message: "user updated successfully" })
+                        }
+                    })
+                    .catch((error) => {
+                        res.status(422).json({ success: false, message: "not update" });
+                })
+            })
         })
-        .catch((error) => {
-            res.status(422).json({ success: false, message: "not update" });
-        })
+    })
 })
 
 router.get("/resume", (req, res) => {
@@ -278,6 +310,8 @@ router.post("/resume", async (req, res) => {
             linkedin: resumeData.linkedin,
             stackoverflow: resumeData.stackoverflow,
             skills: resumeData.skills,
+            languages: resumeData.languages,
+            interests: resumeData.interests,
             academicQli: resumeData.academicQli,
             workExp: resumeData.workExp,
             objective: resumeData.objective,
