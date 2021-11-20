@@ -300,6 +300,7 @@ router.post("/resume", async (req, res) => {
 
         const saveResumeData = new Resume({
             userID: resumeData.userID,
+            
             fullName: resumeData.fullName,
             designation: resumeData.designation,
             contact: resumeData.contact,

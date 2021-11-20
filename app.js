@@ -1,6 +1,7 @@
 require('dotenv').config()
 const express = require("express");
 const mongoose = require("mongoose");
+const multer = require("multer");
 const cors = require("cors");
 const passport = require("passport");
 // const passportjwt = require("passport-jwt");
@@ -53,6 +54,18 @@ app.use(function (req, res, next) {
   );
   next();
 });
+
+var storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, './uploads')
+  },
+  filename: function (req, file, cb) {
+    cb(null, file.originalname)
+  }
+})
+
+var upload = multer({ storage: storage })
+
 
 //all routes
 app.use('/users', users);
