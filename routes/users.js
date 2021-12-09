@@ -106,7 +106,6 @@ router.post("/verifyotp", (req, res) => {
                             console.log(err);
                         })
                 }
-
             } else {
                 res.status(422).json({ success: false, message: "incorrect otp" });
             }
